@@ -1,7 +1,7 @@
 import json
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
-from .models import User, Chat_message
+from .models import User, Chat_message, Messenger_message
 
 
 
@@ -39,6 +39,14 @@ class ChatConsumer(WebsocketConsumer):
             ms_list.append(message)
         self.messages_to_json(reversed(ms_list))
 
+    def load_messenger_messages(self, room_name):
+        messages = Messenger_message.objects.filter(room_name=room_name)
+        ms_list = []
+        for message in messages:
+            ms_list.append(message)
+        self.messages_to_json(reversed(ms_list))
+
+
     def messages_to_json(self, ms_list):
         for message in ms_list:
             self.send_ms(message)
@@ -49,6 +57,14 @@ class ChatConsumer(WebsocketConsumer):
             'author': message.author.username,
             'timestamp': str(message.timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         }, ensure_ascii=False))      
+
+    def new_messenger_message(self, messenger_message, author, companion, room_name):
+        account = User.objects.get(username=author)
+        companion = User.objects.get(username=companion)
+        return Messenger_message.objects.create(author=account,
+                                                companion=companion,
+                                                text=messenger_message,
+                                                room_name=room_name)
 
     # Receive message from WebSocket
     def receive(self, text_data):
@@ -61,8 +77,22 @@ class ChatConsumer(WebsocketConsumer):
                 author = json_data['account']
                 new_chat_message = self.new_chat_message(chat_message, author)
                 self.send_ms(new_chat_message)
-        if json_data['command'] == 'load_chat_messages':
+        elif json_data['command'] == 'load_chat_messages':
             self.load_chat_messages()
+
+        elif json_data['command'] == 'new_messenger_message':
+            messenger_message = json_data['message']
+            if messenger_message == '':
+                return
+            else:    
+                author = json_data['account']
+                companion = json_data['companion']
+                room_name = json_data['room_name']
+                new_messenger_message = self.new_messenger_message(messenger_message, author, companion, room_name)
+                self.send_ms(new_messenger_message)
+        elif json_data['command'] == 'load_messenger_messages':
+            room_name = json_data['room_name']
+            self.load_messenger_messages(room_name)
 
         # Send message to room group
        

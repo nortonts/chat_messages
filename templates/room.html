@@ -1,3 +1,7 @@
+{% extends "base.html" %} 
+{% load static %}
+{% block title %} Последние обновления {% endblock %}
+{% block content %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -11,6 +15,8 @@
 </body>
 <script>
     var roomName = {{ room_name_json }};
+    var account = {{ account }};
+    var companion = {{ companion }};
 
     var chatSocket = new WebSocket(
         'ws://' + window.location.host + '/ws/chat/' + roomName + '/');
@@ -18,8 +24,19 @@
     chatSocket.onmessage = function(e) {
         var data = JSON.parse(e.data);
         var message = data['message'];
-        document.querySelector('#chat-log').value += (message + '\n');
+        var timestamp = data['timestamp'];
+        var author = data['author'];
+        document.querySelector('#chat-log').value += (timestamp + '  ' + author + ':' + '  ' + message + '\n');
     };
+
+    chatSocket.onopen = function(e) {
+      load_messenger_messages();
+    }
+
+    function load_messenger_messages() {
+      chatSocket.send(JSON.stringify({'command': 'load_messenger_messages',
+                                      'room_name': roomName}))
+    }
 
     chatSocket.onclose = function(e) {
         console.error('Chat socket closed unexpectedly');
@@ -36,10 +53,16 @@
         var messageInputDom = document.querySelector('#chat-message-input');
         var message = messageInputDom.value;
         chatSocket.send(JSON.stringify({
-            'message': message
+            'command': 'new_messenger_message',
+            'message': message,
+            'account': account,
+            'companion': companion,
+            'room_name': roomName
         }));
 
         messageInputDom.value = '';
     };
 </script>
 </html>
+
+{% endblock %}
