@@ -1,6 +1,6 @@
 import json
-from django.contrib.auth.decorators import login_required
-from .models import User, Chat_message, Messenger_message
+from django.contrib.auth.decorators import login_required, permission_required
+from .models import User, Chat_message, Messenger_message, Block
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.utils.safestring import mark_safe
@@ -14,9 +14,13 @@ def index(request):
     room_name = 'index'
     return render(request, 'index.html', {'room_name': room_name})
 
+
 @login_required
 def chat(request, room_name):
     account = request.user
+    no_permission = Block.objects.filter(chat_user=account)
+    if no_permission:
+        return render(request, 'block.html') 
     return render(request, 'chat.html', {
         'room_name_json': mark_safe(json.dumps(room_name)),
         'account': mark_safe(json.dumps(account.username))

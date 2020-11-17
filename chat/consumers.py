@@ -46,7 +46,6 @@ class ChatConsumer(WebsocketConsumer):
             ms_list.append(message)
         self.messages_to_json(reversed(ms_list))
 
-
     def messages_to_json(self, ms_list):
         for message in ms_list:
             self.send_ms(message)
@@ -76,7 +75,8 @@ class ChatConsumer(WebsocketConsumer):
             else:    
                 author = json_data['account']
                 new_chat_message = self.new_chat_message(chat_message, author)
-                self.send_ms(new_chat_message)
+                self.group_send(new_chat_message)
+       
         elif json_data['command'] == 'load_chat_messages':
             self.load_chat_messages()
 
@@ -89,29 +89,36 @@ class ChatConsumer(WebsocketConsumer):
                 companion = json_data['companion']
                 room_name = json_data['room_name']
                 new_messenger_message = self.new_messenger_message(messenger_message, author, companion, room_name)
-                self.send_ms(new_messenger_message)
+                self.group_send(new_messenger_message)
+
+
+
         elif json_data['command'] == 'load_messenger_messages':
             room_name = json_data['room_name']
             self.load_messenger_messages(room_name)
 
+       
+       
         # Send message to room group
-       
-       
-       
-        #async_to_sync(self.channel_layer.group_send)(
-        #    self.room_group_name,
-        #    {
-        #        'type': 'chat_message',
-        #        'message': message        
-        #    }
-        #)
+    def group_send(self, message):    
+        async_to_sync(self.channel_layer.group_send)(
+            self.room_group_name,
+            {
+                'type': 'chat_message',
+                'message': message.text,
+                'timestamp': str(message.timestamp.strftime("%Y-%m-%d %H:%M:%S")),
+                'author': message.author.username
+            }
+        )
 
     # Receive message from room group
     def chat_message(self, event):
         message = event['message']
-        
+        timestamp = event['timestamp']
+        author = event['author']
         # Send message to WebSocket
         self.send(text_data=json.dumps({
-            'message': message
-            
+            'message': message,
+            'timestamp': timestamp,
+            'author': author
         }))

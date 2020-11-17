@@ -31,3 +31,8 @@ class Messenger_message(models.Model):
 
     def __str__(self):   
         return f"{self.timestamp} {self.author} {self.companion} {self.text}"       
+
+class Block(models.Model):
+    id = models.AutoField(primary_key=True, unique=True)
+    chat_user = models.ForeignKey(User, on_delete=models.CASCADE, 
+                               related_name='block_user')   
