@@ -46,7 +46,7 @@ class ChatConsumer(WebsocketConsumer):
     def send_ms(self, message):
         self.send(text_data=json.dumps({
             'message': message.text,
-            'username': message.author.username,
+            'author': message.author.username,
             'timestamp': str(message.timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         }, ensure_ascii=False))      
 
